@@ -8,10 +8,10 @@ NixOS.
 We can only fix issues that we know of, so please report any issue you
 encounter.
 
-Issues with the **package manager Nix** (including it's documentation)
+Issues with the **package manager Nix** (including its documentation)
 are reported at <https://github.com/NixOS/nix/issues>.
 
-Issues with **specific packages or NixOS** (including it's modules and
+Issues with **specific packages or NixOS** (including its modules and
 documentation) are reported at <https://github.com/NixOS/nixpkgs/issues>.
 
 Make sure that there is not already an open issue for your problem.
@@ -23,11 +23,11 @@ You need a [GitHub] account for that.
 ## Contribute to Nix
 
 The package manager Nix is mostly written in C++. If you are a developer
-and want to contribute to it's development, you can find information on
+and want to contribute to its development, you can find information on
 [how to setup a development environment] in the manual.
 
 You can find inspiration for things to improve in the [reported
-issues][reported issues].
+issues][nix issues].
 
 Feel free to [join our community] to get in
 contact with other developers.
@@ -40,6 +40,8 @@ Packaging for Nix is simple when you have understood the basic concept.
 package collection. There are also [programming language specific
 instructions][programming language specific instructions].
 
+You can find inspiration for things to improve in the [reported issues][nixpkgs issues].
+
 ## Contribute to NixOS
 
 It’s pretty easy to contribute to NixOS compared to other linux
@@ -50,7 +52,7 @@ review of the maintainers. You will get feedback in the pull request.
 See the [NixOS manual] to get started and find all the details.
 
 You can find inspiration for things to improve in the [reported
-issues](https://github.com/NixOS/nixpkgs/issues). There are also
+issues][nixos issues]. There are also
 [issues tagged with good-first-bug] that are a good start for new
 contributors.
 
@@ -63,5 +65,7 @@ Feel free to [join our community] of developers!
 [nixos manual]: https://nixos.org/manual/nixos/stable/index.html#ch-development
 [nixpkgs]: https://github.com/NixOS/nixpkgs
 [programming language specific instructions]: https://nixos.org/manual/nixpkgs/stable/#chap-language-support
-[reported issues]: https://github.com/NixOS/nix/issues
 [the manual]: https://nixos.org/manual/nix/stable/quick-start.html
+[nix issues]: https://github.com/NixOS/nix/issues
+[nixos issues]: https://github.com/NixOS/nixpkgs/issues?q=is%3Aopen+is%3Aissue+label%3A%226.topic%3A+nixos%22
+[nixpkgs issues]: https://github.com/NixOS/nixpkgs/issues?page=3&q=is%3Aissue+is%3Aopen+label%3A%228.has%3A+package+%28update%29%22%2C%228.has%3A+package+%28new%29%22%2C%229.needs%3A+package+%28update%29%22%2C%229.needs%3A+package+%28new%29%22%2C%220.kind%3A+packaging+request%22%2C%220.kind%3A+build+failure%22

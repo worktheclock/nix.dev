@@ -286,7 +286,7 @@ The most important heuristics to avoid confusion are about white space and paren
    in [ (f a) ]
    ```
 
-       2
+       [ 2 ]
 
    ```nix
    let
@@ -905,6 +905,10 @@ Example:
 
     /current
 
+:::{note}
+Paths can be used in antiquotation – an [impure operation](impurities) we will cover in detail in a [later section](path-impurities).
+:::
+
 #### Search path
 
 Also known as "angle bracket syntax".
@@ -1043,7 +1047,7 @@ x: x + 1
 
 The `<LAMBDA>` indicates the resulting value is an anonymous function.
 
-We can assign functions a name as to any other value.
+As with any other value, functions can be assigned to a name.
 
 Example:
 
@@ -1304,11 +1308,13 @@ We recommend to at least skim them to familiarize yourself with what is availabl
 
 [operators]: https://nixos.org/manual/nix/stable/language/operators.html
 
+(builtins)=
 ### `builtins`
 
 Also known as "primitive operations" or "primops".
 
 Nix comes with many functions that are built into the language.
+They are implemented in C++ as part of the Nix language interpreter.
 
 :::{note}
 The Nix manual lists all [Built-in Functions][nix-builtins], and shows how to use them.
@@ -1324,9 +1330,6 @@ builtins.toString
 
     <PRIMOP>
 
-Some of them have equivalents in `pkgs.lib`.
-But since most `builtins` are implemented in C++ as part of the Nix language interpreter, they usually execute faster.
-
 [nix-operators]: https://nixos.org/manual/nix/unstable/language/operators.html
 [nix-builtins]: https://nixos.org/manual/nix/stable/language/builtins.html
 
@@ -1336,7 +1339,6 @@ Most built-in functions are only accessible through `builtins`.
 A notable exception is `import`, which is also available at the top level.
 
 `import` takes a path to a Nix file, reads it to evaluate the contained Nix expression, and returns the resulting value.
-
 
 Example:
 
@@ -1410,22 +1412,118 @@ Parentheses are required to separate function declaration from function applicat
 
 </details>
 
+(pkgs-lib)=
 ### `pkgs.lib`
 
 The [`nixpkgs`][nixpkgs] repository contains an attribute set called [`lib`][nixpkgs-lib], which provides many useful functions.
+They are implemented in the Nix language, as opposed to [`builtins`](builtins), which are part of the language itself.
 
 :::{note}
 The Nixpkgs manual lists all [Nixpkgs library functions][nixpkgs-functions].
 :::
 
-These functions are usually accessed through `pkgs.lib`.
+[nixpkgs-functions]: https://nixos.org/manual/nixpkgs/stable/#sec-functions-library
+[nixpkgs-lib]: https://github.com/NixOS/nixpkgs/blob/master/lib/default.nix
+
+These functions are usually accessed through `pkgs.lib`, as the Nixpkgs attribute set is given the name `pkgs` by convention.
 
 Example:
 
-    pkgs.lib.strings.toUpper
+```nix
+let
+  pkgs = import <nixpkgs> {};
+in
+pkgs.lib.strings.toUpper "search paths considered harmful"
+```
 
-[nixpkgs-functions]: https://nixos.org/manual/nixpkgs/stable/#sec-functions-library
-[nixpkgs-lib]: https://github.com/NixOS/nixpkgs/blob/master/lib/default.nix
+    SEARCH PATHS CONSIDERED HARMFUL
+
+<details><summary>Detailed explanation</summary>
+
+This is a more complex example, but by now you should be familiar with all its components.
+
+The name `pkgs` is declared to be the expression `import`ed from some file.
+That file's path is determined by the value of the search path `<nixpkgs>`, which in turn is determined by the `$NIX_PATH` environment variable at the time this expression is evaluated.
+As this expression happens to be a function, it requires an argument to evaluate, and in this case passing an empty attribute set `{}` is sufficient.
+
+Now that `pkgs` is in scope of `let ... in ...`, its attributes can be accessed.
+From the Nixpkgs manual one can determine that there exists a function under [`lib.strings.toUpper`].
+
+[`lib.strings.toUpper`]: https://nixos.org/manual/nixpkgs/stable/#function-library-lib.strings.toUpper
+
+For brevity, this example uses a search path to obtain *some version* of Nixpkgs.
+The function `toUpper` is trivial enough that we can expect it not to produce different results for different versions of Nixpkgs.
+Yet, more sophisticated software is likely to suffer from such problems.
+A fully reproducible example would therefore look like this:
+
+```nix
+let
+  nixpkgs = fetchTarball https://github.com/NixOS/nixpkgs/archive/3590f02e7d5760e52072c1a729ee2250b5560746.tar.gz;
+  pkgs = import nixpkgs {};
+in
+pkgs.lib.strings.toUpper "always pin your sources"
+```
+
+    ALWAYS PIN YOUR SOURCES
+
+See [](pinning-nixpkgs) for details.
+
+What you will also often see is that `pkgs` is passed as an argument to a function.
+By convention one can assume that it refers to the Nixpkgs attribute set, which has a `lib` attribute:
+
+```nix
+{ pkgs, ... }:
+pkgs.lib.strings.removePrefix "no " "no true scotsman"
+```
+
+    <LAMBDA>
+
+To make this function produce a result, you can write it to a file (e.g. `file.nix`) and pass it an argument through `nix-instantiate`:
+
+```console
+nix-instantiate --eval test.nix --arg pkgs 'import <nixpkgs> {}'
+```
+
+    "true scotsman"
+
+Oftentimes you will see in NixOS configurations, and also within Nixpkgs, that `lib` is passed directly.
+In that case one can assume that this `lib` is equivalent to `pkgs.lib` where only `pkgs` is available.
+
+Example:
+
+```nix
+{ lib, ... }:
+let
+  to-be = true;
+in
+lib.trivial.or to-be (! to-be)
+```
+
+    <LAMBDA>
+
+To make this function produce a result, you can write it to a file (e.g. `file.nix`) and pass it an argument through `nix-instantiate`:
+
+```console
+nix-instantiate --eval file.nix --arg lib '(import <nixpkgs> {}).lib'
+```
+
+    true
+
+Sometimes both `pkgs` and `lib` are passed as arguments.
+In that case, one can assume `pkgs.lib` and `lib` to be equivalent.
+This is done to improve readability by avoiding repeated use of `pkgs.lib`.
+
+Example:
+
+```nix
+{ pkgs, lib, ... }:
+# ... multiple uses of `pkgs`
+# ... multiple uses of `lib`
+```
+
+</details>
+
+For historical reasons, some of the functions in `pkgs.lib` are equivalent to [`builtins`](builtins) of the same name.
 
 (impurities)=
 ## Impurities
@@ -1453,6 +1551,7 @@ Nix supports other types of impure expressions, such as [search paths](search-pa
 We do not cover those here in more detail as they do not matter to how the Nix language works in principle and because their use is discouraged for the reason of breaking reproducibility.
 :::
 
+(path-impurities)=
 ### Paths
 
 Whenever a file system path is rendered to a character string with [antiquotation](antiquotation), the contents of that file are copied to a special location in the file system, the *Nix store*, as a side effect.
@@ -1490,6 +1589,8 @@ The file is copied into the Nix store directory `/nix/store` as a side effect of
 It is an error if the file system path does not exist.
 
 </details>
+
+For directories the same thing happens: The entire directory (including nested files and directories) is copied to the Nix store, and the evaluated string becomes the Nix store path of the directory.
 
 ### Fetchers
 
@@ -1650,7 +1751,8 @@ Explanation:
   It returns an attribute set.
 - The argument must at least have the attributes `config` and `pkgs` and may have more attributes.
 - The returned attribute set contains the attributes `imports` and `environment`.
-  `imports` is a list with one element: a path to a file next to this Nix file, called `hardware-configuration.nix`.
+- `imports` is a list with one element: a path to a file next to this Nix file, called `hardware-configuration.nix`.
+  When evaluated, the `./hardware-configuration.nix` will be copied into the Nix store, converting it into a Nix store path.
 
   :::{note}
   `imports` is not the impure built-in `import`, but a regular attribute name!
